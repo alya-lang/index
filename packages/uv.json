@@ -1,0 +1,12 @@
+{
+  "name": "uv",
+  "repository": "https://github.com/alya-lang/uv",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:9443aa0bf9db5618db7e8245de76d6a17eb896864c2959346cda0ab9014972ac",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

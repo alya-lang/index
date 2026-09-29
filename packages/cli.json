@@ -1,0 +1,12 @@
+{
+  "name": "cli",
+  "repository": "https://github.com/alya-lang/cli",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:c82b28b73873b1a721b218d3076202a1ef989f0183ffb72bbd87d792f4c780d4",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

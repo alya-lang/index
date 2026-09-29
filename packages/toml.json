@@ -1,0 +1,12 @@
+{
+  "name": "toml",
+  "repository": "https://github.com/alya-lang/toml",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:419c13d6fe7c0e146a7c6e294e1d54c87cb5dc06299a11b7c67a043b7e8c4c5b",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

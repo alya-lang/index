@@ -1,0 +1,12 @@
+{
+  "name": "compress",
+  "repository": "https://github.com/alya-lang/compress",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:376e638846f036074d189b4afb4fee005d483dec9b194da713e156a6eac1c437",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

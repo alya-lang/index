@@ -1,0 +1,18 @@
+{
+  "name": "http",
+  "repository": "https://github.com/alya-lang/http",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:c0861df07838ab1005efca1e36f82dc30b4d2578154e55d72645cff7af887265",
+      "requires_alya": "0.0.19"
+    },
+    {
+      "version": "0.2.0",
+      "tag": "v0.2.0",
+      "checksum": "sha256:b4761d03704c814b0bbe8ad4c7b48bdb1b941d8a61dd9a01be009452c008b760",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

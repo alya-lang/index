@@ -1,0 +1,12 @@
+{
+  "name": "regex",
+  "repository": "https://github.com/alya-lang/regex",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:3530798859129fca39555039e1e262db5b3623332749db071771beff6b34205a",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

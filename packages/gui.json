@@ -1,0 +1,12 @@
+{
+  "name": "gui",
+  "repository": "https://github.com/alya-lang/gui",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:6d228d2a32df7fdd587d5a1e7c8cf969f83541988a9323263704fe2af4b89d93",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

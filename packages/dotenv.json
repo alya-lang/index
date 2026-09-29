@@ -1,0 +1,12 @@
+{
+  "name": "dotenv",
+  "repository": "https://github.com/alya-lang/dotenv",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:9b14a238431e3ca2eb626d6f23099d4c093546414b57fbcd0bbc1e071fa061d6",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

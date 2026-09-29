@@ -1,0 +1,12 @@
+{
+  "name": "xml",
+  "repository": "https://github.com/alya-lang/xml",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:482a2047624e9ce207acfed9800a1c2af95e2502818ebfa779c4752612b0d705",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

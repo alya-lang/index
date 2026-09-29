@@ -1,0 +1,12 @@
+{
+  "name": "sqlite",
+  "repository": "https://github.com/alya-lang/sqlite",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:2bba81bbce935363414aba94d73cf0f5328f3ab192a803c3e62fe991b40ba9d4",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

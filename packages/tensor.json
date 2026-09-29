@@ -1,0 +1,12 @@
+{
+  "name": "tensor",
+  "repository": "https://github.com/alya-lang/tensor",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:f7c1c1aa0223df9e6578ce6825f74124843f4e73f4969d4ced5838d2e28369dd",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "sysinfo",
+  "repository": "https://github.com/alya-lang/sysinfo",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:8f046134e4d55ca64cbaed8d6b73565e8630442daf101e7f2e1ab2619436eddd",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

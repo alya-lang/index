@@ -1,0 +1,12 @@
+{
+  "name": "jwt",
+  "repository": "https://github.com/alya-lang/jwt",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:a201a3ebc3c72e111a5374c55da297298963064cb9d2b2b986a91d880d541dcf",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

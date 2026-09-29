@@ -1,0 +1,12 @@
+{
+  "name": "cache",
+  "repository": "https://github.com/alya-lang/cache",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:adc97e7157cfe94ced7f611a77c4c2f336b25cf354329b850dd75b5b4ed0588b",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

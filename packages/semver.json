@@ -1,0 +1,12 @@
+{
+  "name": "semver",
+  "repository": "https://github.com/alya-lang/semver",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:31d9db5996bf18f7794d99480c18e5955abc4c2020560a868fbaa6d609d1a12a",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

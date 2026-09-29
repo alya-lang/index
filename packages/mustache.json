@@ -1,0 +1,12 @@
+{
+  "name": "mustache",
+  "repository": "https://github.com/alya-lang/mustache",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:481cc2429991e95745272b89dc07ab4efd632767fa80b3af0b4dcf7a301f05bd",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

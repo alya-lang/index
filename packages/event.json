@@ -1,0 +1,12 @@
+{
+  "name": "event",
+  "repository": "https://github.com/alya-lang/event",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:69921aebf2b331b4ae93d8fdb36ccdbfbfcb23f3bd88c45b50886eed91b4a0f9",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

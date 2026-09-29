@@ -1,0 +1,12 @@
+{
+  "name": "url",
+  "repository": "https://github.com/alya-lang/url",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:7b66d3aebcf1544389260d48381b38db74adbdb8b21e58f71b34759dbb3179c8",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

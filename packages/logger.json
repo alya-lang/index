@@ -1,0 +1,12 @@
+{
+  "name": "logger",
+  "repository": "https://github.com/alya-lang/logger",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:cb02a46d8f387b2742d769338ef623c3bb7cba86c91330844abe2575430e5dbc",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

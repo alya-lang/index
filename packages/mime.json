@@ -1,0 +1,12 @@
+{
+  "name": "mime",
+  "repository": "https://github.com/alya-lang/mime",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:588e9ed485d414db763ea54e2f7709cb763c594aa0f8102404c618ed56be0ead",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

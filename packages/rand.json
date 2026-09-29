@@ -1,0 +1,12 @@
+{
+  "name": "rand",
+  "repository": "https://github.com/alya-lang/rand",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:144ae9fd384c81be0bbd00a60f9a6d4dd73d3984c49fdb728f2fcb1b03f4821a",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "name": "csv",
+  "repository": "https://github.com/alya-lang/csv",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:eb994bfd67f915acc9b0b3ee5ff73e3d52dfda94e8501e25a581326c33a84963",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

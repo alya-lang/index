@@ -1,0 +1,12 @@
+{
+  "name": "uuid",
+  "repository": "https://github.com/alya-lang/uuid",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:1589f04c2e02c80e8e8a29bf9a81b7a6573ef2b398dd3662f84fbf38cad85ef0",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
