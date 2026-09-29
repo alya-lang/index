@@ -1,0 +1,59 @@
+name: Automerge
+
+# Merges `automerge`-labeled PRs once CI is green — but ONLY when the diff
+# touches index data (`packages/*.json`, `index.json`). Anything else
+# (scripts, workflows, docs) needs human review and is left alone.
+# The label is the approval gate: only maintainers can label, so bot merges
+# never run on unreviewed third-party content.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened, labeled]
+
+jobs:
+  automerge:
+    if: contains(github.event.pull_request.labels.*.name, 'automerge')
+    name: Validate and merge data PRs
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Check changed paths (data only)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILES=$(gh pr view "${{ github.event.pull_request.number }}" --json files -q '.files[].path')
+          echo "$FILES"
+          BAD=$(echo "$FILES" | grep -vE '^(packages/.*\.json|index\.json)$' || true)
+          if [ -n "$BAD" ]; then
+            echo "Non-data files changed, leaving for human review:"
+            echo "$BAD"
+            exit 1
+          fi
+
+      - name: Wait for checks, then merge
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          PR="${{ github.event.pull_request.number }}"
+          READY=0
+          for i in $(seq 1 60); do
+            STATES=$(gh pr checks "$PR" --json state -q '.[].state' | sort -u)
+            echo "check states: $STATES"
+            if echo "$STATES" | grep -qE 'FAILURE|CANCELLED|TIMED_OUT|ERROR|ACTION_REQUIRED|STARTUP_FAILURE'; then
+              echo "A check failed; leaving for human review."
+              exit 1
+            fi
+            # Empty means CI has not reported yet: keep waiting, never merge blind.
+            if [ -n "$STATES" ] && ! echo "$STATES" | grep -qE 'PENDING|QUEUED|IN_PROGRESS|WAITING|REQUESTED'; then
+              READY=1
+              break
+            fi
+            sleep 30
+          done
+          if [ "$READY" != "1" ]; then
+            echo "Checks did not settle in time; leaving for human review."
+            exit 1
+          fi
+          gh pr merge "$PR" --squash

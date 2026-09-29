@@ -147,6 +147,12 @@ def main():
         help="index layout: flat writes packages/<name>.json, sharded writes "
         "packages/<aa>/<name>.json plus a root index.json declaring the layout",
     )
+    parser.add_argument(
+        "--incremental",
+        action="store_true",
+        help="only process tags missing from the existing documents "
+        "(skips API/HTTP work for known versions)",
+    )
     args = parser.parse_args()
 
     lib_dir = Path(args.lib_dir) if args.lib_dir else ROOT.parent
@@ -168,7 +174,29 @@ def main():
                 print(f"  ! {name}: no semver tags")
                 failed.append(name)
                 continue
-            versions = [build_entry(args.owner, name, t) for t in tags]
+            if args.incremental:
+                # Reuse recorded entries: only new tags cost API/HTTP calls.
+                # A tag whose entry exists with a checksum is trusted as-is.
+                existing = {}
+                dest_probe = doc_path(repo_root, name, args.layout)
+                if dest_probe.is_file():
+                    try:
+                        old_doc = json.loads(dest_probe.read_text(encoding="utf-8"))
+                        for entry in old_doc.get("versions", []):
+                            if isinstance(entry, dict) and entry.get("tag"):
+                                existing[entry["tag"]] = entry
+                    except (OSError, ValueError):
+                        pass
+                missing = [t for t in tags if t not in existing]
+                if not missing:
+                    print(f"  = {name}: up to date ({len(tags)} version(s))")
+                    ok += 1
+                    continue
+                kept = [existing[t] for t in tags if t in existing]
+                fresh = [build_entry(args.owner, name, t) for t in missing]
+                versions = sorted(kept + fresh, key=lambda e: semver_key(e["tag"]))
+            else:
+                versions = [build_entry(args.owner, name, t) for t in tags]
             doc = {
                 "name": name,
                 "repository": f"https://github.com/{args.owner}/{name}",

@@ -1,0 +1,64 @@
+name: Update index
+
+# Weekly self-maintenance: regenerate new entries, open a PR, let the
+# automerge workflow take it from there. The GITHUB_TOKEN never triggers
+# other workflows on its own pushes, so this cannot loop with automerge.
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+    inputs:
+      packages:
+        description: 'Comma-separated subset (default: all)'
+        required: false
+        default: ''
+
+jobs:
+  update:
+    name: Regenerate and propose update
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v7
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Regenerate (incremental)
+        run: |
+          if [ -n "${{ inputs.packages }}" ]; then
+            python scripts/generate.py --incremental --packages "${{ inputs.packages }}"
+          else
+            python scripts/generate.py --incremental
+          fi
+          python scripts/validate.py
+
+      - name: Open update PR
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if git diff --quiet; then
+            echo "Index already up to date."
+            exit 0
+          fi
+          BRANCH="bot/update-index-$(date -u +%Y%m%d)-${{ github.run_number }}"
+          if gh pr list --head "$BRANCH" --json number -q '.[0].number' | grep -q .; then
+            echo "Update PR already open for $BRANCH."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$BRANCH"
+          git add -A
+          git commit -m "chore(index): scheduled update"
+          git push origin "$BRANCH"
+          gh pr create \
+            --title "chore(index): scheduled update" \
+            --body "Automated index refresh (new releases only). Validated by CI; automerge takes over from here." \
+            --label automerge

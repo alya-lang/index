@@ -62,9 +62,20 @@ Entry shape:
 python scripts/generate.py                  # all packages beside this repo
 python scripts/generate.py --packages "http,tz"
 python scripts/generate.py --layout sharded # sharded-v2 + root index.json
+python scripts/generate.py --incremental    # only new tags (fast path)
 python scripts/generate.py --packages "mypkg" --owner myname --out /tmp/myindex
 python scripts/validate.py                  # offline schema check
 ```
+
+## Automation
+
+- **Weekly refresh** (`.github/workflows/update-index.yml`, Mondays 03:00
+  UTC, plus manual dispatch): incremental regenerate → validate → PR
+  labeled `automerge`.
+- **Automerge** (`.github/workflows/automerge.yml`): merges labeled PRs
+  only when the diff touches `packages/*.json`/`index.json` and CI is
+  green. Anything else (scripts, workflows, docs) always needs a human.
+  The label is the approval gate: only maintainers can label.
 
 `generate.py` discovers packages as sibling directories containing
 `alya.toml` (run it from a checkout where this repo sits next to the
