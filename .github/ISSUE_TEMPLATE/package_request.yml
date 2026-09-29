@@ -1,0 +1,35 @@
+name: Package Request
+description: Request inclusion of a package in the index
+title: "[PACKAGE] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Want your package resolvable via `version = "x.y"`? Fill this in.
+        Requirements: public GitHub repo, releases with `alya-pkg.tar.gz`
+        (+ `.sha256`) assets built by the standard release workflow.
+  - type: input
+    id: repo
+    attributes:
+      label: Repository
+      description: Full GitHub repository URL.
+      placeholder: "https://github.com/owner/name"
+    validations:
+      required: true
+  - type: textarea
+    id: releases
+    attributes:
+      label: Releases
+      description: Which tags should be indexed? (Maintainers verify assets exist.)
+      placeholder: "v0.1.0"
+    validations:
+      required: true
+  - type: textarea
+    id: ownership
+    attributes:
+      label: Ownership proof
+      description: How do we know this package is yours to register?
+      placeholder: "I am the repo owner / maintainer team member"
+    validations:
+      required: true

@@ -1,0 +1,31 @@
+name: Wrong Metadata
+description: Report a bad checksum, tag, URL, or version in the index
+title: "[DATA] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this report!
+  - type: input
+    id: package
+    attributes:
+      label: Package and version
+      description: Which `packages/<name>.json` entry and version is wrong?
+      placeholder: "http 0.2.0"
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: What is wrong
+      description: Wrong checksum? Wrong tag? Missing version? Yank needed?
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Link the release / asset, or paste the correct checksum.
+    validations:
+      required: true
