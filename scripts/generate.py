@@ -142,7 +142,7 @@ def main():
                 "versions": versions,
             }
             (out_dir / f"{name}.json").write_text(
-                json.dumps(doc, indent=2) + "\n", encoding="utf-8"
+                json.dumps(doc, indent=2) + "\n", encoding="utf-8", newline=""
             )
             print(f"  + {name}: {len(versions)} version(s)")
             ok += 1
