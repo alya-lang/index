@@ -15,10 +15,23 @@ checksum-verified `alya-pkg.tar.gz` release assets:
 ## Layout
 
 ```text
+index.json             # root document declaring the layout
 packages/<name>.json   # one document per package (generated, committed)
-scripts/generate.py    # rebuilds packages/*.json from live GitHub data
+scripts/generate.py    # rebuilds documents from live GitHub data
 scripts/validate.py    # offline schema gate (runs in CI)
 ```
+
+Two layouts are supported (`index.json`: `{"layout": ...}`):
+
+- `flat-v1`: `packages/<name>.json` (current; fine into the thousands).
+- `sharded-v2`: `packages/<aa>/<name>.json` (`aa` = first two lowercase
+  characters, `1`/`2` for one- and two-letter names). Migration trigger:
+  thousands of documents in one directory. Generate with
+  `python scripts/generate.py --layout sharded`.
+
+Clients read the root document first (cached like package documents)
+and fall back to `flat-v1` when it is absent, so old and new readers
+interoperate during any migration.
 
 Entry shape:
 
@@ -48,6 +61,7 @@ Entry shape:
 ```bash
 python scripts/generate.py                  # all packages beside this repo
 python scripts/generate.py --packages "http,tz"
+python scripts/generate.py --layout sharded # sharded-v2 + root index.json
 python scripts/validate.py                  # offline schema check
 ```
 
