@@ -62,6 +62,7 @@ Entry shape:
 python scripts/generate.py                  # all packages beside this repo
 python scripts/generate.py --packages "http,tz"
 python scripts/generate.py --layout sharded # sharded-v2 + root index.json
+python scripts/generate.py --packages "mypkg" --owner myname --out /tmp/myindex
 python scripts/validate.py                  # offline schema check
 ```
 

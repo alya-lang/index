@@ -131,6 +131,11 @@ def main():
     parser.add_argument("--lib-dir", default=None)
     parser.add_argument("--packages", default=None)
     parser.add_argument(
+        "--owner",
+        default="alya-lang",
+        help="GitHub owner for tag listing and repository URLs",
+    )
+    parser.add_argument(
         "--out",
         default=None,
         help="repository root to write into (default: this repo)",
@@ -158,15 +163,15 @@ def main():
     ok, failed = 0, []
     for name in names:
         try:
-            tags = sorted(set(list_tags(f"alya-lang/{name}")), key=semver_key)
+            tags = sorted(set(list_tags(f"{args.owner}/{name}")), key=semver_key)
             if not tags:
                 print(f"  ! {name}: no semver tags")
                 failed.append(name)
                 continue
-            versions = [build_entry("alya-lang", name, t) for t in tags]
+            versions = [build_entry(args.owner, name, t) for t in tags]
             doc = {
                 "name": name,
-                "repository": f"https://github.com/alya-lang/{name}",
+                "repository": f"https://github.com/{args.owner}/{name}",
                 "versions": versions,
             }
             dest = doc_path(repo_root, name, layout)
