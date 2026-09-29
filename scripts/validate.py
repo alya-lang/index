@@ -11,6 +11,20 @@ PKG_DIR = ROOT / "packages"
 SEMVER = re.compile(r"^v?\d+\.\d+\.\d+(-[0-9A-Za-z.-]+)?$")
 HEX64 = re.compile(r"^[0-9a-f]{64}$")
 NAME = re.compile(r"^[A-Za-z0-9_-]+$")
+LAYOUTS = ("flat-v1", "sharded-v2")
+
+
+def expected_relpath(name, layout):
+    if layout == "sharded-v2":
+        lower = name.lower()
+        if len(lower) == 1:
+            shard = "1"
+        elif len(lower) == 2:
+            shard = "2"
+        else:
+            shard = lower[:2]
+        return Path("packages") / shard / f"{name}.json"
+    return Path("packages") / f"{name}.json"
 
 
 def fail(errors, msg):
@@ -79,18 +93,41 @@ def main():
     if not PKG_DIR.is_dir():
         print("packages/ missing (nothing to validate)")
         return 0
-    files = sorted(PKG_DIR.glob("*.json"))
+    layout = "flat-v1"
+    root_doc = ROOT / "index.json"
+    if root_doc.is_file():
+        try:
+            declared = json.loads(root_doc.read_text(encoding="utf-8")).get("layout")
+        except (OSError, json.JSONDecodeError) as e:
+            print(f"index.json unreadable: {e}")
+            return 1
+        if declared not in LAYOUTS:
+            print(f"index.json declares unknown layout '{declared}'")
+            return 1
+        layout = declared
+    files = sorted(p for p in PKG_DIR.rglob("*.json") if p.is_file())
     if not files:
         print("no package documents found")
         return 1
     for path in files:
         check_file(path, errors)
+        try:
+            name = json.loads(path.read_text(encoding="utf-8")).get("name", "")
+        except (OSError, json.JSONDecodeError):
+            continue
+        if isinstance(name, str) and name:
+            want = ROOT / expected_relpath(name, layout)
+            if path.resolve() != want.resolve():
+                rel = want.relative_to(ROOT).as_posix()
+                errors.append(
+                    f"{path.name}: misplaced for layout '{layout}' (want {rel})"
+                )
     if errors:
         print(f"{len(errors)} schema violation(s):")
         for msg in errors:
             print(f"  - {msg}")
         return 1
-    print(f"OK: {len(files)} package document(s) valid")
+    print(f"OK: {len(files)} package document(s) valid (layout {layout})")
     return 0
 
 

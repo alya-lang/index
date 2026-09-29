@@ -99,6 +99,21 @@ def discover_packages(lib_dir):
     return found
 
 
+def shard_dir(name):
+    lower = name.lower()
+    if len(lower) == 1:
+        return "1"
+    if len(lower) == 2:
+        return "2"
+    return lower[:2] if lower else "_"
+
+
+def doc_path(repo_root, name, layout):
+    if layout == "sharded":
+        return repo_root / "packages" / shard_dir(name) / f"{name}.json"
+    return repo_root / "packages" / f"{name}.json"
+
+
 def build_entry(owner, repo, tag):
     version = tag[1:] if tag[:1] in ("v", "V") else tag
     entry = {"version": version, "tag": tag}
@@ -115,12 +130,25 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lib-dir", default=None)
     parser.add_argument("--packages", default=None)
-    parser.add_argument("--out", default=None)
+    parser.add_argument(
+        "--out",
+        default=None,
+        help="repository root to write into (default: this repo)",
+    )
+    parser.add_argument(
+        "--layout",
+        choices=("flat", "sharded"),
+        default="flat",
+        help="index layout: flat writes packages/<name>.json, sharded writes "
+        "packages/<aa>/<name>.json plus a root index.json declaring the layout",
+    )
     args = parser.parse_args()
 
     lib_dir = Path(args.lib_dir) if args.lib_dir else ROOT.parent
-    out_dir = Path(args.out) if args.out else ROOT / "packages"
+    repo_root = Path(args.out) if args.out else ROOT
+    out_dir = repo_root / "packages"
     out_dir.mkdir(parents=True, exist_ok=True)
+    layout = args.layout
 
     if args.packages:
         names = [p.strip() for p in args.packages.split(",") if p.strip()]
@@ -141,7 +169,9 @@ def main():
                 "repository": f"https://github.com/alya-lang/{name}",
                 "versions": versions,
             }
-            (out_dir / f"{name}.json").write_text(
+            dest = doc_path(repo_root, name, layout)
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            dest.write_text(
                 json.dumps(doc, indent=2) + "\n", encoding="utf-8", newline=""
             )
             print(f"  + {name}: {len(versions)} version(s)")
@@ -149,6 +179,11 @@ def main():
         except Exception as e:  # per-package isolation: never abort the run
             print(f"  ! {name}: {e}")
             failed.append(name)
+    root_doc = {"layout": "sharded-v2" if layout == "sharded" else "flat-v1"}
+    (repo_root / "index.json").write_text(
+        json.dumps(root_doc, indent=2) + "\n", encoding="utf-8", newline=""
+    )
+    print(f"layout: {root_doc['layout']}")
     print(f"done: {ok} package(s), {len(failed)} failed {failed}")
     return 1 if failed and ok == 0 else 0
 
