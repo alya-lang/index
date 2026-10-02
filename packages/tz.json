@@ -1,0 +1,12 @@
+{
+  "name": "tz",
+  "repository": "https://github.com/alya-lang/tz",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:99a1452a7beb006d2b7664b1aa4e8b1334647ec21ef80fbf4a6ea4f6e5de77d9",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
