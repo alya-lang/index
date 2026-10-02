@@ -92,7 +92,7 @@ def requires_alya(owner, repo, tag):
 def discover_packages(lib_dir):
     found = []
     for child in sorted(lib_dir.iterdir()):
-        if not child.is_dir() or child.name in ("index", "template", "workspace-demo"):
+        if not child.is_dir() or child.name in ("index", "template", "template-workspace"):
             continue
         if (child / "alya.toml").is_file():
             found.append(child.name)
