@@ -21,6 +21,7 @@ concurrency:
 
 permissions:
   pull-requests: write
+  issues: write
   contents: read
 
 jobs:
@@ -63,9 +64,27 @@ jobs:
             '}' > "$HOME/.config/opencode/opencode.json"
 
       - name: AI review (advisory comment)
+        id: review
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
           AI_MODEL: opencode/muse-spark-1.3-contributor-free
         run: python scripts/ai_review.py
+
+      - name: Auto-label clean data PRs
+        # Label (not merge): the existing automerge flow takes over from
+        # here. Strict gate: low model risk AND all remote facts match
+        # AND data-only diff. Anything else stays for human review.
+        if: steps.review.outputs.risk == 'low' && steps.review.outputs.facts_ok == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILES=$(gh pr view "${{ github.event.pull_request.number }}" --json files -q '.files[].path')
+          echo "$FILES"
+          BAD=$(echo "$FILES" | grep -vE '^(packages/.*\.json|index\.json)$' || true)
+          if [ -n "$BAD" ]; then
+            echo "Non-data files changed, not labeling."
+            exit 0
+          fi
+          gh pr edit "${{ github.event.pull_request.number }}" --add-label automerge

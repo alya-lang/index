@@ -170,6 +170,20 @@ def render(review):
     return "\n".join(lines)
 
 
+def split_github_repo(url):
+    # "https://github.com/owner/name(.git)" -> (owner, name), else None.
+    try:
+        parts = url.strip().rstrip("/").split("/")
+        if len(parts) >= 5 and parts[2].lower() == "github.com":
+            name = parts[4]
+            if name.endswith(".git"):
+                name = name[:-4]
+            return parts[3], name
+    except (IndexError, AttributeError):
+        pass
+    return None
+
+
 def fetch_text(url, token=""):
     import urllib.request
     try:
@@ -184,7 +198,28 @@ def fetch_text(url, token=""):
         return None
 
 
-def split_github_repo(url):
+def semver_key(ver):
+    import re
+    m = re.fullmatch(r"v?(\d+)\.(\d+)\.(\d+)(?:-([0-9A-Za-z.-]+))?", (ver or "").strip())
+    if not m:
+        return None
+    nums = tuple(int(m.group(i)) for i in (1, 2, 3))
+    pre = m.group(4) or ""
+    return (nums, pre == "", pre)
+
+
+def latest_alya_release():
+    proc = run(["gh", "release", "list", "--repo", "alya-lang/alya",
+                "--limit", "1", "--json", "tagName"])
+    if proc.returncode != 0:
+        return None
+    try:
+        releases = json.loads(proc.stdout)
+        if releases:
+            return (releases[0].get("tagName") or "").strip() or None
+    except ValueError:
+        pass
+    return None
     # "https://github.com/owner/name(.git)" -> (owner, name), else None.
     try:
         parts = url.strip().rstrip("/").split("/")
@@ -202,9 +237,15 @@ def verify_remote(repo, changed_files, head_sha, gh_token):
     """Deterministic read-only checks per index entry (ground truth for
     the model). No code is fetched or executed — only release metadata,
     checksum files and alya.toml text. Any network failure degrades to a
-    single 'unavailable' fact (fail-open)."""
+    single 'unavailable' fact (fail-open).
+
+    Returns (facts, all_ok): all_ok is False when anything is missing,
+    mismatched, skipped or capped — the auto-label gate reads it."""
     import base64
     import re
+
+    BAD_MARKERS = ("MISMATCH", "MISSING", "unavailable", "skipped",
+                   "cap ", "no installable", "newer compiler")
 
     docs = []
     for path in changed_files:
@@ -225,19 +266,26 @@ def verify_remote(repo, changed_files, head_sha, gh_token):
         if isinstance(doc, dict) and isinstance(doc.get("versions"), list):
             docs.append((path, doc))
     if not docs:
-        return ["remote verification unavailable (no index docs readable)"]
+        return ["remote verification unavailable (no index docs readable)"], False
+    latest = latest_alya_release()
+    latest_key = semver_key(latest) if latest else None
     facts = []
     checked = 0
     for path, doc in docs:
+        doc_name = str(doc.get("name", "?"))
+        alive = [e for e in doc.get("versions", [])
+                 if isinstance(e, dict) and not e.get("yanked")]
+        if doc.get("versions") and not alive:
+            facts.append(f"{doc_name}: no installable versions remain (all yanked)")
         pkg_repo = split_github_repo(str(doc.get("repository", "")))
         for entry in doc.get("versions", []):
             if checked >= MAX_VERIFY_ENTRIES:
                 facts.append(f"...(entry cap {MAX_VERIFY_ENTRIES} reached)")
-                return facts
+                return facts, False
             if not isinstance(entry, dict):
                 continue
             ver, tag = entry.get("version", "?"), entry.get("tag", "?")
-            label = f"{doc.get('name', '?')}@{ver}"
+            label = f"{doc_name}@{ver}"
             if pkg_repo is None:
                 facts.append(f"{label}: skipped (non-GitHub repository)")
                 checked += 1
@@ -259,18 +307,38 @@ def verify_remote(repo, changed_files, head_sha, gh_token):
                 actual = (got.split()[0].lower() if got and got.split() else "")
                 bits.append("checksum=match" if actual == hexpart.lower()
                             else f"checksum=MISMATCH (index {hexpart[:12]}.. vs asset {actual[:12] or 'missing'}..)")
+            else:
+                bits.append("no checksum/tarball; installs via git fallback")
+            toml = fetch_text(
+                f"https://raw.githubusercontent.com/{owner}/{pname}/{tag}/alya.toml",
+                gh_token)
+            pkg_sect = ""
+            for chunk in re.split(r"(?m)^\[", toml or ""):
+                if chunk.startswith("package]"):
+                    pkg_sect = chunk
+                    break
             if entry.get("requires_alya"):
-                toml = fetch_text(
-                    f"https://raw.githubusercontent.com/{owner}/{pname}/{tag}/alya.toml",
-                    gh_token)
                 m = re.search(r'^\s*alya-version\s*=\s*["\']([^"\']+)["\']',
-                              toml or "", re.M)
+                              pkg_sect, re.M)
                 have = m.group(1).strip() if m else ""
-                bits.append("requires_alya=match" if have == str(entry["requires_alya"])
-                            else f"requires_alya=MISMATCH (index {entry['requires_alya']} vs alya.toml {have or 'missing'})")
+                if have == str(entry["requires_alya"]):
+                    bits.append("requires_alya=match")
+                else:
+                    bits.append(f"requires_alya=MISMATCH (index {entry['requires_alya']} vs alya.toml {have or 'missing'})")
+                if latest_key is not None:
+                    req_key = semver_key(str(entry["requires_alya"]))
+                    if req_key is not None and req_key > latest_key:
+                        bits.append(f"requires newer compiler than latest alya {latest} "
+                                    f"(installs will fail on current toolchains)")
+            m_name = re.search(r'^\s*name\s*=\s*["\']([^"\']+)["\']', pkg_sect, re.M)
+            if m_name and m_name.group(1).strip() != doc_name:
+                bits.append(f"package-name MISMATCH (index {doc_name} vs alya.toml {m_name.group(1).strip()})")
             facts.append(", ".join(bits))
             checked += 1
-    return facts or ["remote verification unavailable (network)"]
+    if not facts:
+        facts = ["remote verification unavailable (network)"]
+    all_ok = not any(any(mk in f for mk in BAD_MARKERS) for f in facts)
+    return facts, all_ok
 
 
 def main():
@@ -305,8 +373,8 @@ def main():
         print("ai-review: empty diff, nothing to review.")
         return 0
 
-    prompt = build_prompt(info.get("title", ""), author, files,
-                          verify_remote(repo, files, head_sha, gh_token), diff_text)
+    facts, facts_ok = verify_remote(repo, files, head_sha, gh_token)
+    prompt = build_prompt(info.get("title", ""), author, files, diff_text, facts)
     workdir = tempfile.mkdtemp(prefix="ai-review-")
     # Scrubbed environment: the model process sees no repo secrets.
     # PATH is required to locate `opencode`; HOME for its config dir.
@@ -370,7 +438,12 @@ def main():
                   "-f", f"body={body}"])
         if up.returncode != 0:
             fail(f"comment post failed: {up.stderr.strip()[:200]}")
-    print(f"ai-review: comment posted (risk={review['risk']}).")
+    print(f"ai-review: comment posted (risk={review['risk']}, facts_ok={facts_ok}).")
+    out_path = os.environ.get("GITHUB_OUTPUT", "")
+    if out_path:
+        with open(out_path, "a", encoding="utf-8") as fh:
+            fh.write(f"risk={review['risk']}\n")
+            fh.write(f"facts_ok={'true' if facts_ok else 'false'}\n")
     return 0
 
 
