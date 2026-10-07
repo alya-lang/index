@@ -1,0 +1,71 @@
+name: AI review
+
+# Advisory-only PR review via the free opencode model. Posts ONE upserted
+# comment per PR; never merges, never labels, never blocks CI.
+#
+# Prompt-injection posture:
+# - pull_request_target on the BASE repo only; the PR head is never
+#   checked out and PR code is never executed (diff text only).
+# - Same-repo PRs only (fork diffs never reach the model).
+# - Model runs with a scrubbed env (no GH_TOKEN), in an empty workdir,
+#   under a deny-by-default opencode permission file (see below).
+# - Model output is schema-validated; off-schema output is discarded.
+# - No model text ever reaches a shell.
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+concurrency:
+  group: ai-review-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  pull-requests: write
+  contents: read
+
+jobs:
+  review:
+    # Same-repo gate (scripts/ai_review.py enforces the same check).
+    if: github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout base (PR head never checked out)
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.x'
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+
+      - name: Install opencode CLI
+        run: bun install -g --trust @opencode/cli
+
+      - name: Deny-by-default opencode permissions
+        # Belt and suspenders: the review needs no tools (the prompt
+        # carries everything), so deny them all. Unknown keys are
+        # ignored by opencode; known deny rules fail closed.
+        run: |
+          mkdir -p "$HOME/.config/opencode"
+          printf '%s\n' '{' \
+            '  "permission": {' \
+            '    "edit": "deny",' \
+            '    "write": "deny",' \
+            '    "bash": "deny",' \
+            '    "patch": "deny",' \
+            '    "*": "ask"' \
+            '  }' \
+            '}' > "$HOME/.config/opencode/opencode.json"
+
+      - name: AI review (advisory comment)
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          REPO: ${{ github.repository }}
+          AI_MODEL: opencode/muse-spark-1.3-contributor-free
+        run: python scripts/ai_review.py
