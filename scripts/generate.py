@@ -10,7 +10,10 @@ tags via `gh`, and fills checksums + alya-version via raw URLs:
 
 Only semver-looking tags become entries. A tag without an
 alya-pkg.tar.gz asset keeps its entry with no checksum (the client falls
-back to git for those versions).
+back to git for those versions). A full rebuild refreshes every entry
+from live data but preserves previously recorded `yanked: true` flags,
+so yanks are never silently dropped (un-yanking likewise takes effect
+on the next full rebuild).
 """
 import argparse
 import json
@@ -126,6 +129,34 @@ def build_entry(owner, repo, tag):
     return entry
 
 
+def load_existing_versions(doc_path):
+    """Version entries of an existing index document ({} when absent)."""
+    try:
+        doc = json.loads(doc_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    versions = doc.get("versions")
+    return versions if isinstance(versions, list) else []
+
+
+def apply_preserved_yanked(old_versions, new_versions):
+    """Carry `yanked: true` flags across a full rebuild.
+
+    Everything else (checksum, requires_alya) is refreshed from live data;
+    only an explicit yank survives, so un-yanking is a full rebuild away
+    while yanks are never silently dropped.
+    """
+    yanked_tags = {
+        e["tag"]
+        for e in old_versions
+        if isinstance(e, dict) and e.get("tag") and e.get("yanked") is True
+    }
+    for e in new_versions:
+        if e.get("tag") in yanked_tags:
+            e["yanked"] = True
+    return new_versions
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--lib-dir", default=None)
@@ -196,7 +227,11 @@ def main():
                 fresh = [build_entry(args.owner, name, t) for t in missing]
                 versions = sorted(kept + fresh, key=lambda e: semver_key(e["tag"]))
             else:
+                old_versions = load_existing_versions(
+                    doc_path(repo_root, name, args.layout)
+                )
                 versions = [build_entry(args.owner, name, t) for t in tags]
+                versions = apply_preserved_yanked(old_versions, versions)
             doc = {
                 "name": name,
                 "repository": f"https://github.com/{args.owner}/{name}",
