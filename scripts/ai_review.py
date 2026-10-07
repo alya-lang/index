@@ -17,7 +17,9 @@ Security posture (prompt injection is the threat model):
     discarded without a comment.
   - One upserted comment per PR (marker below); reruns update in place.
 
-Environment: PR_NUMBER, REPO (owner/name), GH_TOKEN, AI_MODEL,
+Environment: PR_NUMBER, REPO (owner/name), GH_TOKEN, AI_MODELS
+(comma-separated model chain, first schema-valid answer wins;
+falls back to AI_MODEL, default opencode/muse-spark-1.3-contributor-free),
 DIFF_MAX_CHARS (default 40000), MODEL_TIMEOUT_S (default 600).
 No model API key is needed (free tier). Exits 0 unless our own
 plumbing breaks; model-side failures log and exit 0 so review never
@@ -167,6 +169,8 @@ def render(review):
         "",
         "_Automated review of index data. Treat as untrusted advice: verify before acting._",
     ]
+    if review.get("model"):
+        lines.append(f"_Model: `{review['model']}`._")
     return "\n".join(lines)
 
 
@@ -341,13 +345,57 @@ def verify_remote(repo, changed_files, head_sha, gh_token):
     return facts, all_ok
 
 
+def run_model(models, prompt, workdir, env, ok=None):
+    """Try each model in order; first answer passing `ok` wins.
+
+    Providers come and go (today's free model may vanish tomorrow), so
+    the chain — not any single id — is the reliability strategy. Every
+    attempt is logged; callers still schema-validate the winner.
+    """
+    check = ok or (lambda text: bool(text))
+    for model in models:
+        model = model.strip()
+        if not model:
+            continue
+        try:
+            proc = subprocess.run(
+                ["opencode", "run", "--model", model, "--format", "json"],
+                input=prompt, capture_output=True, text=True,
+                timeout=TIMEOUT, cwd=workdir, env=env,
+            )
+        except subprocess.TimeoutExpired:
+            print(f"ai-review: model {model} timed out, trying next.")
+            continue
+        except FileNotFoundError:
+            print("ai-review: opencode CLI not on PATH.")
+            return "", ""
+        texts = []
+        for line in proc.stdout.splitlines():
+            line = line.strip()
+            if not line.startswith("{"):
+                continue
+            try:
+                event = json.loads(line)
+            except ValueError:
+                continue
+            part = event.get("part") or {}
+            if event.get("type") == "text" and isinstance(part.get("text"), str):
+                texts.append(part["text"])
+        text = "".join(texts).strip()
+        if text and check(text):
+            print(f"ai-review: answered by {model}.")
+            return text, model
+        print(f"ai-review: model {model} unusable, trying next.")
+    return "", ""
+
+
 def main():
     pr_number = os.environ.get("PR_NUMBER", "")
     repo = os.environ.get("REPO", "")
     if not pr_number or not repo:
         fail("PR_NUMBER/REPO not set")
     # Free model tier needs no API key; nothing to check.
-    model = os.environ.get("AI_MODEL", "opencode/muse-spark-1.3-contributor-free")
+    # Model chain is resolved later (AI_MODELS, fallback AI_MODEL).
 
     meta = run(["gh", "pr", "view", pr_number, "--repo", repo, "--json",
                 "title,author,files,headRepository,headRefOid"])
@@ -381,35 +429,22 @@ def main():
     # No API key is passed: the free model tier needs none.
     keep = ("PATH", "HOME", "SystemRoot", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL")
     env = {k: v for k, v in os.environ.items() if k in keep}
-    try:
-        proc = subprocess.run(
-            ["opencode", "run", "--model", model, "--format", "json"],
-            input=prompt,
-            capture_output=True,
-            text=True,
-            timeout=TIMEOUT,
-            cwd=workdir,
-            env=env,
-        )
-    except subprocess.TimeoutExpired:
-        print("ai-review: model timed out, no comment posted.")
+    models = [m for m in os.environ.get(
+        "AI_MODELS",
+        os.environ.get("AI_MODEL", "opencode/muse-spark-1.3-contributor-free"),
+    ).split(",")]
+    raw_text, answering_model = run_model(
+        models, prompt, workdir, env,
+        ok=lambda t: validate(extract_json(t)) is not None,
+    )
+    if not raw_text:
+        print("ai-review: all models failed, no comment posted.")
         return 0
-    texts = []
-    for line in proc.stdout.splitlines():
-        line = line.strip()
-        if not line.startswith("{"):
-            continue
-        try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        part = (event.get("part") or {})
-        if event.get("type") == "text" and isinstance(part.get("text"), str):
-            texts.append(part["text"])
-    review = validate(extract_json("".join(texts).strip()))
+    review = validate(extract_json(raw_text))
     if review is None:
         print("ai-review: model output off-schema, no comment posted.")
         return 0
+    review["model"] = answering_model
 
     body = render(review)
     owner, name = repo.split("/", 1)

@@ -69,7 +69,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.pull_request.number }}
           REPO: ${{ github.repository }}
-          AI_MODEL: opencode/muse-spark-1.3-contributor-free
+          AI_MODELS: opencode/muse-spark-1.3-contributor-free,opencode/nemotron-3-ultra-free,opencode/mimo-v2.6-flash-free,opencode/big-pickle,opencode/space-bunny-free
         run: python scripts/ai_review.py
 
       - name: Auto-label clean data PRs
