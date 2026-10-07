@@ -5,37 +5,7 @@
     {
       "version": "0.1.0",
       "tag": "v0.1.0",
-      "checksum": "sha256:7e4df9c0f91f9a389d7a080570fac3fbae21a2b65bba1076a9981dc45d6f72a4",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.2.0",
-      "tag": "v0.2.0",
-      "checksum": "sha256:908939460c66f9c5720d2855d8dfe5cb042a91789fa195b7e3d1d676bd9d25aa",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.3.0",
-      "tag": "v0.3.0",
-      "checksum": "sha256:eddee9cdc3cce22a3bc79f1b17c53d831140f9514d7beefbd56233c6f991f823",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.4.0",
-      "tag": "v0.4.0",
-      "checksum": "sha256:89749f22fadacc6f7a7745848cb8844b0552c6fcf7fc1f6c0ad54d5d92650b07",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.5.0",
-      "tag": "v0.5.0",
-      "checksum": "sha256:07be80f3b147069b504d9e1339746be76b5b8dd56d403eee2d583399ae8a4112",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.6.0",
-      "tag": "v0.6.0",
-      "checksum": "sha256:2484462dd7cec6abe687231b65bf60135482f15c237e4df01c50a2a48ca16c2d",
+      "checksum": "sha256:a8e9d8a56082e143bf1dab46f6990b6abb87e7174592ac87e78920a9c61901ac",
       "requires_alya": "0.0.19"
     }
   ]

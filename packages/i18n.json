@@ -1,0 +1,12 @@
+{
+  "name": "i18n",
+  "repository": "https://github.com/alya-lang/i18n",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:fd01d67888a1b0f9c5d59a919f74eca4be8ac21b2f8d2ae79996a7194aa81e33",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}

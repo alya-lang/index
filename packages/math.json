@@ -5,19 +5,7 @@
     {
       "version": "0.1.0",
       "tag": "v0.1.0",
-      "checksum": "sha256:efe23131c545403cc8260e31dea1c7c25af6d64dfe23bd7adf1ffebf830fb6fe",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.2.0",
-      "tag": "v0.2.0",
-      "checksum": "sha256:5efb31a2d8a082a913d39761e969737ad135506c9a98730091d259109894e54c",
-      "requires_alya": "0.0.19"
-    },
-    {
-      "version": "0.3.0",
-      "tag": "v0.3.0",
-      "checksum": "sha256:59dea32610f23c0db510437fd06ab95e487ed5d7689776b748ab1ed004185217",
+      "checksum": "sha256:75179caf74042fe408545ce46480d3e64f0462ab4f9495638a46eff8137af990",
       "requires_alya": "0.0.19"
     }
   ]

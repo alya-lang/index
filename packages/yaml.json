@@ -5,7 +5,7 @@
     {
       "version": "0.1.0",
       "tag": "v0.1.0",
-      "checksum": "sha256:432993f30806cf30fef0c512be0bce2118ae5edfab9b3b34cabb3c66a2f922d0",
+      "checksum": "sha256:c39bc16b68c3859f667df1bcb1cdc586855a512a9a6d0cb2a318ce2e04d9f37c",
       "requires_alya": "0.0.19"
     }
   ]
