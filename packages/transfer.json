@@ -1,0 +1,12 @@
+{
+  "name": "transfer",
+  "repository": "https://github.com/alya-lang/transfer",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:70f9fc579198428a3f2257ae9fdb0844031b6d4c038a9931f9fe69e32ec4a748",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
