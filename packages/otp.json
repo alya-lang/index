@@ -1,0 +1,12 @@
+{
+  "name": "otp",
+  "repository": "https://github.com/alya-lang/otp",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:e72838a5cd28e074b41b798aa886c00e9aaeb4383b7483c37f6d0447b59c1c22",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
