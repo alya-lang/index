@@ -42,48 +42,16 @@ FETCH_TIMEOUT = 25
 SEVERITIES = {"info", "minor", "major"}
 RISKS = {"low", "medium", "high"}
 
-_STRINGS_CACHE = {}
+import ai_common
 
 
 def load_strings(language):
-    """UI strings for `language`, English fallback per missing key.
-
-    Languages are data, not code: adding one means dropping
-    `scripts/i18n/<lang>.json` next to this script — no code change.
-    Unknown languages silently fall back to English.
-    """
-    if language not in _STRINGS_CACHE:
-        merged = {}
-        base = _i18n_path("en")
-        try:
-            with open(base, encoding="utf-8") as fh:
-                doc = json.load(fh)
-            if isinstance(doc, dict):
-                merged.update({k: v for k, v in doc.items() if isinstance(v, str)})
-        except (OSError, ValueError):
-            pass
-        if language != "en":
-            try:
-                with open(_i18n_path(language), encoding="utf-8") as fh:
-                    doc = json.load(fh)
-                if isinstance(doc, dict):
-                    merged.update({k: v for k, v in doc.items() if isinstance(v, str)})
-            except (OSError, ValueError):
-                pass
-        _STRINGS_CACHE[language] = merged
-    return _STRINGS_CACHE[language]
-
-
-def _i18n_path(language):
-    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
-                        "i18n", f"{language}.json")
+    return ai_common.load_strings(__file__, language)
 
 
 def lang_name(language):
-    if language != "en" and not os.path.isfile(_i18n_path(language)):
-        return f"ISO language code '{language}'"
-    name = load_strings(language).get("language_name", "")
-    return name if name else f"ISO language code '{language}'"
+    return ai_common.lang_name(__file__, language)
+
 
 DEFAULT_CONFIG = {
     "language": "en",
@@ -98,24 +66,17 @@ def load_repo_config(repo_root):
     `.github/ai-review.json` is optional; missing/invalid means defaults.
     Unknown keys are ignored so the file stays forward-compatible.
     """
+    doc = ai_common.read_json_doc(
+        os.path.join(repo_root, ".github", "ai-review.json"))
     cfg = dict(DEFAULT_CONFIG)
-    try:
-        with open(os.path.join(repo_root, ".github", "ai-review.json"),
-                  encoding="utf-8") as fh:
-            doc = json.load(fh)
-    except (OSError, ValueError):
-        return cfg
-    if not isinstance(doc, dict):
+    if not doc:
         return cfg
     lang = str(doc.get("language") or "en").strip().lower()
     if re.fullmatch(r"[a-z]{2}(?:-[a-z]{2})?", lang):
         cfg["language"] = lang
-    if isinstance(doc.get("ignore_paths"), list):
-        cfg["ignore_paths"] = [p for p in doc["ignore_paths"] if isinstance(p, str)][:50]
-    try:
-        cfg["max_findings"] = max(1, min(50, int(doc.get("max_findings", 20))))
-    except (TypeError, ValueError):
-        pass
+    cfg["ignore_paths"] = (ai_common.str_list(doc.get("ignore_paths"), None, 50)
+                           or cfg["ignore_paths"])
+    cfg["max_findings"] = ai_common.clamp_int(doc.get("max_findings", 20), 20, 1, 50)
     return cfg
 
 
@@ -125,13 +86,11 @@ def ignored_by_config(path, patterns):
 
 
 def run(cmd, **kw):
-    proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, **kw)
-    return proc
+    return ai_common.run(cmd, **kw)
 
 
 def fail(msg):
-    print(f"ai-review error: {msg}", file=sys.stderr)
-    sys.exit(1)
+    ai_common.fail(msg)
 
 
 def build_prompt(title, author, files, diff, facts, language="en"):
@@ -188,28 +147,7 @@ END UNTRUSTED DATA"""
 
 
 def extract_json(text):
-    try:
-        return json.loads(text)
-    except ValueError:
-        pass
-    t = text.replace("```json", "```").replace("```JSON", "```")
-    start_f = t.find("```")
-    while start_f != -1:
-        end_f = t.find("```", start_f + 3)
-        if end_f == -1:
-            break
-        try:
-            return json.loads(t[start_f + 3 : end_f])
-        except ValueError:
-            pass
-        start_f = t.find("```", end_f + 3)
-    start, end = text.find("{"), text.rfind("}")
-    if start != -1 and end > start:
-        try:
-            return json.loads(text[start : end + 1])
-        except ValueError:
-            pass
-    return None
+    return ai_common.extract_json(text)
 
 
 def validate(obj, max_findings=MAX_FINDINGS):
@@ -429,47 +367,8 @@ def verify_remote(repo, changed_files, head_sha, gh_token):
 
 
 def run_model(models, prompt, workdir, env, ok=None):
-    """Try each model in order; first answer passing `ok` wins.
-
-    Providers come and go (today's free model may vanish tomorrow), so
-    the chain — not any single id — is the reliability strategy. Every
-    attempt is logged; callers still schema-validate the winner.
-    """
-    check = ok or (lambda text: bool(text))
-    for model in models:
-        model = model.strip()
-        if not model:
-            continue
-        try:
-            proc = subprocess.run(
-                ["opencode", "run", "--model", model, "--format", "json"],
-                input=prompt, capture_output=True, text=True,
-                timeout=TIMEOUT, cwd=workdir, env=env,
-            )
-        except subprocess.TimeoutExpired:
-            print(f"ai-review: model {model} timed out, trying next.")
-            continue
-        except FileNotFoundError:
-            print("ai-review: opencode CLI not on PATH.")
-            return "", ""
-        texts = []
-        for line in proc.stdout.splitlines():
-            line = line.strip()
-            if not line.startswith("{"):
-                continue
-            try:
-                event = json.loads(line)
-            except ValueError:
-                continue
-            part = event.get("part") or {}
-            if event.get("type") == "text" and isinstance(part.get("text"), str):
-                texts.append(part["text"])
-        text = "".join(texts).strip()
-        if text and check(text):
-            print(f"ai-review: answered by {model}.")
-            return text, model
-        print(f"ai-review: model {model} unusable, trying next.")
-    return "", ""
+    return ai_common.run_model(models, prompt, workdir, env, ok,
+                               TIMEOUT, "ai-review")
 
 
 def main():
@@ -535,31 +434,7 @@ def main():
 
     body = render(review, cfg["language"])
     owner, name = repo.split("/", 1)
-    # Find our previous comment (if any) by marker; filter in Python so
-    # no model-influenced text ever reaches a shell or jq program.
-    existing = None
-    lst = run(["gh", "api", f"repos/{owner}/{name}/issues/{pr_number}/comments",
-               "--paginate"])
-    if lst.returncode == 0:
-        try:
-            for c in json.loads(lst.stdout):
-                if isinstance(c, dict) and MARKER in str(c.get("body", "")):
-                    existing = c.get("id")
-                    break
-        except ValueError:
-            existing = None
-    if existing:
-        up = run(["gh", "api", "--method", "PATCH",
-                  f"repos/{owner}/{name}/issues/comments/{existing}",
-                  "-f", f"body={body}"])
-        if up.returncode != 0:
-            fail(f"comment update failed: {up.stderr.strip()[:200]}")
-    else:
-        up = run(["gh", "api", "--method", "POST",
-                  f"repos/{owner}/{name}/issues/{pr_number}/comments",
-                  "-f", f"body={body}"])
-        if up.returncode != 0:
-            fail(f"comment post failed: {up.stderr.strip()[:200]}")
+    ai_common.upsert_issue_comment(owner, name, pr_number, MARKER, body)
     print(f"ai-review: comment posted (risk={review['risk']}, facts_ok={facts_ok}).")
     out_path = os.environ.get("GITHUB_OUTPUT", "")
     if out_path:
