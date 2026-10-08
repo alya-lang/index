@@ -1,0 +1,8 @@
+{
+  "title": "## KI-Indexprüfung (nur unverbindlich — führt niemals zusammen)",
+  "risk": "Risiko",
+  "headers": "| Schweregrad | Datei | Details |",
+  "no_issues": "Keine Probleme gefunden.",
+  "advice": "_Automatisierte Prüfung der Indexdaten. Als unverbindlichen Hinweis behandeln: vor dem Handeln verifizieren._",
+  "language_name": "German"
+}

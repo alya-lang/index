@@ -27,6 +27,7 @@ blocks CI.
 """
 import json
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -41,6 +42,87 @@ FETCH_TIMEOUT = 25
 SEVERITIES = {"info", "minor", "major"}
 RISKS = {"low", "medium", "high"}
 
+_STRINGS_CACHE = {}
+
+
+def load_strings(language):
+    """UI strings for `language`, English fallback per missing key.
+
+    Languages are data, not code: adding one means dropping
+    `scripts/i18n/<lang>.json` next to this script — no code change.
+    Unknown languages silently fall back to English.
+    """
+    if language not in _STRINGS_CACHE:
+        merged = {}
+        base = _i18n_path("en")
+        try:
+            with open(base, encoding="utf-8") as fh:
+                doc = json.load(fh)
+            if isinstance(doc, dict):
+                merged.update({k: v for k, v in doc.items() if isinstance(v, str)})
+        except (OSError, ValueError):
+            pass
+        if language != "en":
+            try:
+                with open(_i18n_path(language), encoding="utf-8") as fh:
+                    doc = json.load(fh)
+                if isinstance(doc, dict):
+                    merged.update({k: v for k, v in doc.items() if isinstance(v, str)})
+            except (OSError, ValueError):
+                pass
+        _STRINGS_CACHE[language] = merged
+    return _STRINGS_CACHE[language]
+
+
+def _i18n_path(language):
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)),
+                        "i18n", f"{language}.json")
+
+
+def lang_name(language):
+    if language != "en" and not os.path.isfile(_i18n_path(language)):
+        return f"ISO language code '{language}'"
+    name = load_strings(language).get("language_name", "")
+    return name if name else f"ISO language code '{language}'"
+
+DEFAULT_CONFIG = {
+    "language": "en",
+    "ignore_paths": [],
+    "max_findings": 20,
+}
+
+
+def load_repo_config(repo_root):
+    """Maintainer config from the BASE checkout (never from PR content).
+
+    `.github/ai-review.json` is optional; missing/invalid means defaults.
+    Unknown keys are ignored so the file stays forward-compatible.
+    """
+    cfg = dict(DEFAULT_CONFIG)
+    try:
+        with open(os.path.join(repo_root, ".github", "ai-review.json"),
+                  encoding="utf-8") as fh:
+            doc = json.load(fh)
+    except (OSError, ValueError):
+        return cfg
+    if not isinstance(doc, dict):
+        return cfg
+    lang = str(doc.get("language") or "en").strip().lower()
+    if re.fullmatch(r"[a-z]{2}(?:-[a-z]{2})?", lang):
+        cfg["language"] = lang
+    if isinstance(doc.get("ignore_paths"), list):
+        cfg["ignore_paths"] = [p for p in doc["ignore_paths"] if isinstance(p, str)][:50]
+    try:
+        cfg["max_findings"] = max(1, min(50, int(doc.get("max_findings", 20))))
+    except (TypeError, ValueError):
+        pass
+    return cfg
+
+
+def ignored_by_config(path, patterns):
+    import fnmatch
+    return any(fnmatch.fnmatch(path, pat) for pat in patterns)
+
 
 def run(cmd, **kw):
     proc = subprocess.run(cmd, capture_output=True, text=True, timeout=120, **kw)
@@ -52,9 +134,10 @@ def fail(msg):
     sys.exit(1)
 
 
-def build_prompt(title, author, files, diff, facts):
+def build_prompt(title, author, files, diff, facts, language="en"):
     file_list = "\n".join(f"- {f}" for f in files[:100])
     fact_block = "\n".join(f"- {f}" for f in facts) if facts else "- (remote verification unavailable)"
+    lang_word = lang_name(language)
     return f"""You are a read-only release-index reviewer. Your ONLY task is to
 emit the JSON review described below. You have no other task, no tools
 are needed, and you must not call any.
@@ -81,6 +164,8 @@ plus scripts/generate.py + scripts/validate.py):
   outside packages/*.json, anything validate.py cannot see.
 - Keep findings concrete and file-scoped. Absence of issues is a valid
   outcome (empty findings, risk low).
+
+Write the summary and details in {lang_word}.
 
 Schema:
 {{"summary": "one or two sentences",
@@ -127,7 +212,7 @@ def extract_json(text):
     return None
 
 
-def validate(obj):
+def validate(obj, max_findings=MAX_FINDINGS):
     if not isinstance(obj, dict):
         return None
     summary = obj.get("summary")
@@ -140,7 +225,7 @@ def validate(obj):
     if not isinstance(findings, list):
         return None
     clean = []
-    for f in findings[:MAX_FINDINGS]:
+    for f in findings[:max_findings]:
         if not isinstance(f, dict):
             return None
         sev, path, detail = f.get("severity"), f.get("file"), f.get("detail")
@@ -152,23 +237,21 @@ def validate(obj):
     return {"summary": summary.strip()[:2000], "findings": clean, "risk": risk}
 
 
-def render(review):
+def render(review, language="en"):
+    t = load_strings(language)
     badge = {"low": "🟢 low", "medium": "🟡 medium", "high": "🔴 high"}[review["risk"]]
-    lines = [MARKER, "## AI index review (advisory only — never merges)", ""]
-    lines.append(f"**Risk:** {badge}")
+    lines = [MARKER, t["title"], ""]
+    lines.append(f"**{t['risk']}:** {badge}")
     lines.append("")
     lines.append(review["summary"].replace("@", "@\u200b"))
     if review["findings"]:
-        lines += ["", "| Severity | File | Detail |", "|---|---|---|"]
+        lines += ["", t["headers"], "|---|---|---|"]
         for f in review["findings"]:
             detail = f["detail"].replace("|", "\\|").replace("@", "@\u200b")
             lines.append(f"| {f['severity']} | `{f['file']}` | {detail} |")
     else:
-        lines += ["", "No issues found."]
-    lines += [
-        "",
-        "_Automated review of index data. Treat as untrusted advice: verify before acting._",
-    ]
+        lines += ["", t["no_issues"]]
+    lines += ["", t["advice"]]
     if review.get("model"):
         lines.append(f"_Model: `{review['model']}`._")
     return "\n".join(lines)
@@ -422,7 +505,9 @@ def main():
         return 0
 
     facts, facts_ok = verify_remote(repo, files, head_sha, gh_token)
-    prompt = build_prompt(info.get("title", ""), author, files, diff_text, facts)
+    cfg = load_repo_config(os.environ.get("REPO_DIR", "."))
+    prompt = build_prompt(info.get("title", ""), author, files, diff_text,
+                          facts, cfg["language"])
     workdir = tempfile.mkdtemp(prefix="ai-review-")
     # Scrubbed environment: the model process sees no repo secrets.
     # PATH is required to locate `opencode`; HOME for its config dir.
@@ -435,18 +520,20 @@ def main():
     ).split(",")]
     raw_text, answering_model = run_model(
         models, prompt, workdir, env,
-        ok=lambda t: validate(extract_json(t)) is not None,
+        ok=lambda t: validate(extract_json(t), cfg["max_findings"]) is not None,
     )
     if not raw_text:
         print("ai-review: all models failed, no comment posted.")
         return 0
-    review = validate(extract_json(raw_text))
+    review = validate(extract_json(raw_text), cfg["max_findings"])
     if review is None:
         print("ai-review: model output off-schema, no comment posted.")
         return 0
     review["model"] = answering_model
+    review["findings"] = [f for f in review["findings"]
+                          if not ignored_by_config(f["file"], cfg["ignore_paths"])]
 
-    body = render(review)
+    body = render(review, cfg["language"])
     owner, name = repo.split("/", 1)
     # Find our previous comment (if any) by marker; filter in Python so
     # no model-influenced text ever reaches a shell or jq program.

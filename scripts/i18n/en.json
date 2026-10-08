@@ -1,0 +1,8 @@
+{
+  "title": "## AI index review (advisory only \u2014 never merges)",
+  "risk": "Risk",
+  "headers": "| Severity | File | Detail |",
+  "no_issues": "No issues found.",
+  "advice": "_Automated review of index data. Treat as untrusted advice: verify before acting._",
+  "language_name": "English"
+}
