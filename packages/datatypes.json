@@ -1,0 +1,12 @@
+{
+  "name": "datatypes",
+  "repository": "https://github.com/alya-lang/datatypes",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:f9097e0e14ae5319a2b91ababfd7366dc764a2dfae59d419f4ca19b7e59ea781",
+      "requires_alya": "0.0.20"
+    }
+  ]
+}
