@@ -1,0 +1,12 @@
+{
+  "name": "shm",
+  "repository": "https://github.com/alya-lang/shm",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:1fc522ba867914601d5ddb49a6c374326468a1c8b7992e39bc4d3b0d752ab774",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
