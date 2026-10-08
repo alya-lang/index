@@ -1,0 +1,12 @@
+{
+  "name": "pool",
+  "repository": "https://github.com/alya-lang/pool",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:7aa98821d3a04ddc2d6cbea1217468adb5cc16e035cdc8147ec26728eb68f7eb",
+      "requires_alya": "0.0.20"
+    }
+  ]
+}
