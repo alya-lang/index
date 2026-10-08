@@ -1,0 +1,12 @@
+{
+  "name": "linq",
+  "repository": "https://github.com/alya-lang/linq",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:c278c998aea68dd0b962ff32e2e836179c8ddce59955052366b16118bbc83f81",
+      "requires_alya": "0.0.20"
+    }
+  ]
+}
