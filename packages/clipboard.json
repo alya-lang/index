@@ -1,0 +1,12 @@
+{
+  "name": "clipboard",
+  "repository": "https://github.com/alya-lang/clipboard",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:81cdc6049571b7a71449474c4bc8dc35e2f9e976ab513a6838bd1377de1ca4dd",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
