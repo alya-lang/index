@@ -17,11 +17,12 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
 
     steps:
       - name: Check changed paths (data only)
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           FILES=$(gh pr view "${{ github.event.pull_request.number }}" --json files -q '.files[].path')
           echo "$FILES"
@@ -33,13 +34,12 @@ jobs:
           fi
 
       - name: Wait for checks, then merge
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           PR="${{ github.event.pull_request.number }}"
           READY=0
           for i in $(seq 1 60); do
-            STATES=$(gh pr checks "$PR" --json state -q '.[].state' | sort -u)
+            # Filter out self so this job doesn't deadlock waiting on its own in-progress state
+            STATES=$(gh pr checks "$PR" --json name,state -q '.[] | select(.name != "Validate and merge data PRs") | .state' | sort -u)
             echo "check states: $STATES"
             if echo "$STATES" | grep -qE 'FAILURE|CANCELLED|TIMED_OUT|ERROR|ACTION_REQUIRED|STARTUP_FAILURE'; then
               echo "A check failed; leaving for human review."
