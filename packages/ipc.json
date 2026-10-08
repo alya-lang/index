@@ -1,0 +1,12 @@
+{
+  "name": "ipc",
+  "repository": "https://github.com/alya-lang/ipc",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:dcc4b209623d41f9a3352c25a4d6d23ff3ff4c6bfe9807158e349a006dedc112",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
