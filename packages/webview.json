@@ -1,0 +1,12 @@
+{
+  "name": "webview",
+  "repository": "https://github.com/alya-lang/webview",
+  "versions": [
+    {
+      "version": "0.1.0",
+      "tag": "v0.1.0",
+      "checksum": "sha256:e803392aef463a9f2e27b21d0063f1897c73cbeb477dac8dd293011f96f9a8a0",
+      "requires_alya": "0.0.19"
+    }
+  ]
+}
